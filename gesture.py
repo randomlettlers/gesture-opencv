@@ -2,6 +2,12 @@ import cv2
 import numpy as np
 import math
 
+import ctypes
+import time
+#from pynput.keyboard import Key, Controller
+
+SendInput = ctypes.windll.user32.SendInput
+#keyboard = Controller()
 
 cap = cv2.VideoCapture(0)
 while(cap.isOpened()):
@@ -88,18 +94,80 @@ while(cap.isOpened()):
         #cv2.circle(crop_img,far,5,[0,0,255],-1)
 
     # define actions required
-    if count_defects == 1:
-        cv2.putText(img,"I am Vipul", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
-    elif count_defects == 2:
-        str = "This is a basic hand gesture recognizer"
-        cv2.putText(img, str, (5, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
-    elif count_defects == 3:
-        cv2.putText(img,"This is 4 :P", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
-    elif count_defects == 4:
-        cv2.putText(img,"Hi!!!", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
+    #if count_defects == 1:
+    #    cv2.putText(img,"I am Vipul", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 7, 2)
+    #elif count_defects == 2:
+    #    str = "This is a basic hand gesture recognizer"
+    #    cv2.putText(img, str, (5, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+    #elif count_defects == 3:
+    #    cv2.putText(img,"This is 4 :P", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
+    #elif count_defects == 4:
+    #    cv2.putText(img,"Hi!!!", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
+    #else:
+    #    cv2.putText(img,"Hello World!!!", (50, 50),\
+    #                cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
+
+    #C struct redefinitions 
+    PUL = ctypes.POINTER(ctypes.c_ulong)
+    class KeyBdInput(ctypes.Structure):
+        _fields_ = [("wVk", ctypes.c_ushort),
+                    ("wScan", ctypes.c_ushort),
+                    ("dwFlags", ctypes.c_ulong),
+                    ("time", ctypes.c_ulong),
+                    ("dwExtraInfo", PUL)]
+
+    class HardwareInput(ctypes.Structure):
+        _fields_ = [("uMsg", ctypes.c_ulong),
+                    ("wParamL", ctypes.c_short),
+                    ("wParamH", ctypes.c_ushort)]
+
+    class MouseInput(ctypes.Structure):
+        _fields_ = [("dx", ctypes.c_long),
+                    ("dy", ctypes.c_long),
+                    ("mouseData", ctypes.c_ulong),
+                    ("dwFlags", ctypes.c_ulong),
+                    ("time",ctypes.c_ulong),
+                    ("dwExtraInfo", PUL)]
+
+    class Input_I(ctypes.Union):
+        _fields_ = [("ki", KeyBdInput),
+                     ("mi", MouseInput),
+                     ("hi", HardwareInput)]
+
+    class Input(ctypes.Structure):
+        _fields_ = [("type", ctypes.c_ulong),
+                    ("ii", Input_I)]
+
+    # Actuals Functions
+
+    def PressKey(hexKeyCode):
+        extra = ctypes.c_ulong(0)
+        ii_ = Input_I()
+        ii_.ki = KeyBdInput( 0, hexKeyCode, 0x0008, 0, ctypes.pointer(extra) )
+        x = Input( ctypes.c_ulong(1), ii_ )
+        ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+
+    def ReleaseKey(hexKeyCode):
+        extra = ctypes.c_ulong(0)
+        ii_ = Input_I()
+        ii_.ki = KeyBdInput( 0, hexKeyCode, 0x0008 | 0x0002, 0, ctypes.pointer(extra) )
+        x = Input( ctypes.c_ulong(1), ii_ )
+        ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+
+    #def KeyPress():
+    #    time.sleep(3)
+    #    PressKey(0x10) # press Q
+    #    time.sleep(.05)
+    #    ReleaseKey(0x10) #release Q
+
+    if count_defects >= 4:
+        print(count_defects)
+        PressKey(0x20)
+        #keyboard.press('d') 
     else:
-        cv2.putText(img,"Hello World!!!", (50, 50),\
-                    cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
+        ReleaseKey(0x20)
+        #keyboard.release('d')
+
 
     # show appropriate images in windows
     cv2.imshow('Gesture', img)
